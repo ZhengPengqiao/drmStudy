@@ -1,13 +1,13 @@
 LDFLAGS			:= -I../Doc/libdrm-imx8/include/libdrm -I../Doc/libdrm-imx8/include
 LDFLAGS			+= -L../Doc/libdrm-imx8/lib/ -ldrm
 
-TARGET			:= drmDevice
+TARGET			:= colorTest
 INCLUDE += 
 
 STRIP           := ls
 CFLAGS	+=
 OBJS = \
-	drmDevice.o\
+	colorTest.o\
 
 all:$(TARGET)
 
