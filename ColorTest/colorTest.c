@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include <string.h>
 
-
+char *dev_name = (char *)"/dev/dri/card0";
 static int r = 0;
 static int g = 0;
 static int b = 0;
@@ -147,6 +147,7 @@ void showHelp()
     printf("./programe options \n");    
     printf("USED:");
     printf("    -help: show help info\n");
+    printf("    -dev name: the dri dev name (default %s)\n", dev_name);
     printf("    -uc: use user color show (default %s)\n", uc?"True":"False");
     printf("    -r value: r value (default %d)\n", r);
     printf("    -g value: g value (default %d)\n", g);
@@ -167,6 +168,11 @@ int checkParam(int argc,char **argv)
         else if( strcmp("-uc", argv[i]) == 0 )
         {
             uc = 1;
+        }
+        else if( strcmp("-dev", argv[i]) == 0 )
+        {
+            dev_name = argv[i+1];
+            i++;
         }
         else if( strcmp("-r", argv[i]) == 0 )
         {
@@ -204,7 +210,7 @@ int main(int argc, char *argv[])
 
     printf("uc=%s r=%d g=%d b=%d\n",uc?"TRUE":"FALSE",r,g,b);
 
-    fd = open("/dev/dri/card0", O_RDWR | O_CLOEXEC | O_NONBLOCK);
+    fd = open(dev_name, O_RDWR | O_CLOEXEC | O_NONBLOCK);
     if (fd < 0)
     {
         /* Probably permissions error */
@@ -215,8 +221,8 @@ int main(int argc, char *argv[])
     drmSetMaster(fd);
 
     drmModeConnectorPtr connector = FindConnector(fd);
-    int width = 1366;
-    int height = 720;
+	int width = connector->modes[0].hdisplay;
+	int height = connector->modes[0].vdisplay;
 
     printf("display is %d*%d. connector id = %d \n", width, height, connector->connector_id);
 
@@ -236,7 +242,6 @@ int main(int argc, char *argv[])
     {
         printf("create dumb failed!\n");
     }
-
     uint32_t framebuffer = -1;
     uint32_t stride = creq.pitch;
 
