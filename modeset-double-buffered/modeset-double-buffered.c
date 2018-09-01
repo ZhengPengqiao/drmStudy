@@ -194,6 +194,7 @@ static int modeset_setup_dev(int fd, drmModeRes *res, drmModeConnector *conn,
 			     struct modeset_dev *dev)
 {
 	int ret;
+	struct drm_version vreq;
 
 	/* check if a monitor is connected */
 	if (conn->connection != DRM_MODE_CONNECTED) {
@@ -226,6 +227,15 @@ static int modeset_setup_dev(int fd, drmModeRes *res, drmModeConnector *conn,
 			conn->connector_id);
 		return ret;
 	}
+
+	memset(&vreq, 0, sizeof(vreq));
+	ret = drmIoctl(fd, DRM_IOCTL_VERSION, &vreq);
+	if (ret) {
+		fprintf(stderr, "cannot DRM_IOCTL_VERSION (%d): %m\n", errno);
+		return -errno;
+	}
+	printf("version_(major,minor)=(%d,%d) \n",		vreq.version_major, vreq.version_minor);
+
 
 	/* create framebuffer #1 for this CRTC */
 	ret = modeset_create_fb(fd, &dev->bufs[0]);
@@ -349,8 +359,7 @@ static int modeset_create_fb(int fd, struct modeset_buf *buf)
 	creq.bpp = 32;
 	ret = drmIoctl(fd, DRM_IOCTL_MODE_CREATE_DUMB, &creq);
 	if (ret < 0) {
-		fprintf(stderr, "cannot create dumb buffer (%d): %m\n",
-			errno);
+		fprintf(stderr, "cannot create dumb buffer (%d): %m\n", errno);
 		return -errno;
 	}
 	buf->stride = creq.pitch;
@@ -361,8 +370,7 @@ static int modeset_create_fb(int fd, struct modeset_buf *buf)
 	ret = drmModeAddFB(fd, buf->width, buf->height, 24, 32, buf->stride,
 			   buf->handle, &buf->fb);
 	if (ret) {
-		fprintf(stderr, "cannot create framebuffer (%d): %m\n",
-			errno);
+		fprintf(stderr, "cannot create framebuffer (%d): %m\n", errno);
 		ret = -errno;
 		goto err_destroy;
 	}
@@ -372,8 +380,7 @@ static int modeset_create_fb(int fd, struct modeset_buf *buf)
 	mreq.handle = buf->handle;
 	ret = drmIoctl(fd, DRM_IOCTL_MODE_MAP_DUMB, &mreq);
 	if (ret) {
-		fprintf(stderr, "cannot map dumb buffer (%d): %m\n",
-			errno);
+		fprintf(stderr, "cannot DRM_IOCTL_MODE_MAP_DUMB (%d): %m\n", errno);
 		ret = -errno;
 		goto err_fb;
 	}
@@ -382,11 +389,11 @@ static int modeset_create_fb(int fd, struct modeset_buf *buf)
 	buf->map = (unsigned char*)mmap(0, buf->size, PROT_READ | PROT_WRITE, MAP_SHARED,
 		        fd, mreq.offset);
 	if (buf->map == MAP_FAILED) {
-		fprintf(stderr, "cannot mmap dumb buffer (%d): %m\n",
-			errno);
+		fprintf(stderr, "cannot mmap dumb buffer (%d): %m\n", errno);
 		ret = -errno;
 		goto err_fb;
 	}
+	printf("buf->map=0x%x\n", buf->map);
 
 	/* clear the framebuffer to 0 */
 	memset(buf->map, 0, buf->size);
